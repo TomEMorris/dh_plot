@@ -1,0 +1,265 @@
+---
+title: "Graph Examples"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+if (!require(tidyverse)) {
+  install.packages("tidyverse")
+  library(tidyverse)
+}
+#setwd("//ims.gov.uk/data/Users/GBBULVD/BULHOME23/TMorris2/My Documents/R/dh_plot")
+source("G:/EOR3/HCAT/Analytical - misc/Data Science/dh-plot.R")
+```
+
+#Graphs in R
+This document is meant to be a toolkit for creating graphs in R. Below are a series of example graphs designed to be easily modified and used with your data.
+
+The graphing package used is called `ggplot2`. This can be loaded on it's own or as part of the the `tidyverse` package.
+
+It's creators describe `ggplot2` as a [system for declaratively creating graphics](https://ggplot2.tidyverse.org/). You provide ggplot2 your data and some properties you want your graph to have, and it will create it for you.
+
+There are a lot of resources and in depth guides available for `ggplot2` written by the people who produced it. Instead of reproducing these, this document provides some templates for graphs so we can create visually consistent graphs quickly.
+
+If you are interested in learning more about `ggplot2` the following resources are a good place to start:
+
+* The data visualisation chapter of [R for Data Science](https://r4ds.had.co.nz/data-visualisation.html)
+* The DataCamp `ggplot2` [course](https://www.datacamp.com/courses/data-visualization-with-ggplot2-1)
+* The `ggplot2` [cheatsheet](https://www.rstudio.com/wp-content/uploads/2015/03/ggplot2-cheatsheet.pdf)
+* The `ggplot2` [CRAN page](https://cran.r-project.org/web/packages/ggplot2/ggplot2.pdf)
+* The help function in RStudio. This will give you the specific arguments you need for each element, i.e. `?geom_col()`
+
+
+
+##Read in data
+The charts below use the example data created below.
+```{r data}
+x <- 20
+exampleData <- tibble(values = runif(20, 1, x),
+                      type = c(rep(c("A"), x/2), rep(c("B"), x/2)),
+                      date = rep(seq(as.Date("2016/12/01"), by = "month", length.out = x/2), 2))
+```
+Real data will likely need some transformation before it can be plotted.
+
+##DHSC_style
+These graphs all use a function called `dh_style()`. This ensures they all look consistent. To import this fuction use:
+
+`source("G:/EOR3/HCAT/Analytical - misc/Data Science/dh-plot.R")`
+
+This will make `dhsc_style` available. It also gives you quicker access to the colours defined in the DHSC publishing guidlines. To see these colours use the function `list_dhsc_colours()`.
+
+`dhsc_style` is mostly copied from the [BBC's graphing package](https://github.com/bbc/bbplot/tree/master/R).
+
+##Bar Charts
+
+###Simple Bar Chart
+This simple chart uses `geom_col` to create a bar chart. The `fill` argument defines the colour of the bars.
+```{r barChart1}
+
+ggplot(data = exampleData) + 
+  
+  geom_col(aes(x = date, y = values), fill = dh_Teal) +
+  
+    labs(title = "Example Graph Title",
+       subtitle = "Example Subtitle",
+       caption = "Source: Example data") +
+  xlab("Date") +
+  ylab("Values") +
+
+  #theme_gov()
+  dhsc_style()
+```
+
+##Stacked Bar Chart
+The main difference between this graph and the one above is that the `fill` argument is inside the `aes()`. This is the aesthetics function which describes how the data is mapped onto the graph. Including the `fill` tells ggplot that the `fill` parameter should differentiate on the variable `type`. The colour of the bars is then defined in the function `scale_fill_manual`.
+```{r barChart2}
+ggplot(data = exampleData) + 
+  
+  geom_col(aes(x = date, y = values, fill = type)) +
+  
+  scale_fill_manual(values = (c(dh_Teal, dh_Purple))) +
+  
+  labs(title = "Example Graph Title",
+       subtitle = "Example Subtitle",
+       caption = "Source: Example data") +
+  xlab("Date") +
+  ylab("Values") + 
+  scale_x_date(date_breaks = "2 months") +
+  
+  #theme_gov()
+  dhsc_style()
+```
+
+##Comparative Bar Chart
+This chart is the same as above except for the argument `position = position_dodge(width = 20)`. This tells ggplot that you want the bars side by side instead of stacked. You can adjust the number to change the positioning of the bars.
+```{r barChart3}
+ggplot(data = exampleData) + 
+  
+  geom_col(aes(x = date, y = values, fill = type), position = position_dodge(width = 20)) +
+  
+  scale_fill_manual(values = (c(dh_Teal, dh_Purple))) +
+  
+  labs(title = "Example Graph Title",
+       subtitle = "Example Subtitle",
+       caption = "Source: Example data") +
+  xlab("Date") +
+  ylab("Values") + 
+  
+  #theme_gov()
+  dhsc_style()
+```
+
+##Faceted Bar Chart
+This graph uses `facet_wrap` to create two charts side by side, one for each `type`.
+```{r barChart4}
+ggplot(data = exampleData) + 
+  
+  geom_col(aes(x = date, y = values, fill = type)) +
+  
+  facet_wrap(vars(type)) +
+  
+  scale_fill_manual(values = (c(dh_Teal, dh_Purple))) +
+  
+  labs(title = "Example Graph Title",
+       subtitle = "Example Subtitle",
+       xlab = "Values",
+       ylab = "Date",
+       caption = "Source: Example data") + 
+  
+  #theme_gov()
+  dhsc_style()
+```
+
+#Line Charts
+This chart uses several `geom_()` objects to add different elements to the chart.
+
+* `geom_line` is the line graph element
+* `geom_point` adds the point elements
+* `geom_text` adds the values at ech data point
+* `geom_hline` adds a horziontal line on a specfic y intercept value
+```{r lineChart}
+ggplot(data = exampleData) + 
+  
+  geom_line(aes(x = date, y = values, colour = type), size = 2) +
+  
+  geom_point(aes(x = date, y = values, colour = type), size = 4, shape = 16) +
+  
+  geom_text(aes(x = date, y = values, label = signif(values, digits = 2), vjust = 1.5),show.legend = FALSE) +
+  
+  geom_hline(aes(yintercept = mean(values), colour = "Mean value"), size = 2, linetype = "dashed") +
+  
+  scale_colour_manual(values = (c(dh_GreenL, dh_Pink, dh_Sky))) +
+  
+  labs(title = "Example Graph Title",
+       subtitle = "Example Subtitle",
+       caption = "Source: Example data") +
+  xlab("Date") +
+  ylab("Values") +
+  
+  #theme_gov()
+  dhsc_style()
+```
+
+
+This line chart moves the data argument from the `ggplot()` object to the `geom_()` objects. This means we can plot different data on different lines.
+
+Here we have two `geom_line()` objects, each with filtered data sets. One of these objects plots the points before a date, with a dashed line, one plots all the objects after the date with a filled line.
+```{r lineChart2}
+thresholdDate <- as.Date("2017-06-01")
+
+ggplot() + 
+  
+  geom_line(data = filter(exampleData, date >= thresholdDate), aes(x = date, y = values, colour = type), size = 2) +
+  
+  geom_line(data = filter(exampleData, date <= thresholdDate), aes(x = date, y = values, colour = type), size = 2, linetype = "dashed") +
+  
+  geom_point(data = exampleData, aes(x = date, y = values, colour = type), size = 4, shape = 16) +
+  
+  geom_vline(data = exampleData, aes(xintercept = thresholdDate, colour = "Change in data collection"), size = 2, linetype = "dotted") +
+  
+  scale_colour_manual(values = (c(dh_GreenL, dh_Pink, dh_Sky))) +
+  
+  labs(title = "Example Graph Title",
+       subtitle = "Example Subtitle",
+       caption = "Source: Example data") +
+  xlab("Date") +
+  ylab("Values") +
+  
+  #theme_gov()
+  dhsc_style()
+```
+
+
+#Area Chart
+```{r areaChart}
+ggplot(data = exampleData) + 
+  
+  geom_area(aes(x = date, y = values, fill = type)) +
+  
+  scale_fill_manual(values = (c(dh_Teal, dh_Purple))) +
+  
+  labs(title = "Example Graph Title",
+       subtitle = "Example Subtitle",
+       caption = "Source: Example data") +
+  xlab("Date") +
+  ylab("Values") +
+  
+  #theme_gov()
+  dhsc_style()
+```
+
+#Mixed bar and Line Chart
+The creator of ggplot2 doesn't agree with having two independent axis on the same graph. As a result creating graphs with 2 y-axis is more complicated than the above graphs.
+
+Again we have different data arguments for each `geom_()` object, with the `geom_line` data having a transformation into percentages.
+
+In `ggplot` the second y-axis needs to be a direct transformation of the first. To get around this we are using a variable I have called `scaleFactor`. If you divide your y-axis values by this number, and multiply your first y-axis scale by the same number, the second y-axis will give the correct scale. This is obviously not ideal.
+
+The object that gives the the second y axis is `scale_y_continuous()`. The first argument is a formula that describes the transformation of the first y-axis that will be the scale of the second.
+```{r mixedChart}
+scaleFactor <- 3
+
+ggplot() + 
+  
+  geom_col(data = exampleData %>%
+             group_by(date) %>%
+             summarise(total = sum(values)),
+           aes(x = date, y = total), fill = dh_Teal) +
+  
+  geom_line(data = exampleData %>%
+              group_by(date) %>%
+              mutate(percent = values/sum(values)*100),
+            aes(x = date, y = percent/scaleFactor, colour = type), size = 2) +
+  
+  scale_colour_manual(values = (c(dh_Pink, dh_GreenD))) + 
+  
+  scale_y_continuous(sec.axis = sec_axis(~.*scaleFactor, name = "Percentage")) +
+  
+  labs(title = "Example Graph Title",
+       subtitle = "Example Subtitle",
+       caption = "Source: Example data") +
+  xlab("Date") +
+  ylab("Values") + 
+  
+  #theme_gov()
+  dhsc_style()
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
